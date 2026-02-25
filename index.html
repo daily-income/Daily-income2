@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Earning Airdrop</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: #0b0b14; color: #ffffff; -webkit-tap-highlight-color: transparent;}
+
+        /* Page Switching Logic */
+        .page { display: none; padding-bottom: 90px; animation: fadeIn 0.2s ease-in-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* General Card Style */
+        .card { background: #14141f; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 15px; margin: 0 15px 15px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .flex-align { display: flex; align-items: center; gap: 12px; }
+
+        /* Typography & Colors */
+        .text-green { color: #26A17B; }
+        .text-yellow { color: #FFC107; }
+        .text-orange { color: #FF6B35; }
+        .text-gray { color: #888899; font-size: 12px;}
+        .section-title { padding: 0 15px; font-size: 13px; color: #888899; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; text-transform: uppercase; font-weight: 700;}
+
+        /* --- HOME PAGE STYLES --- */
+        .stats-container { display: flex; gap: 10px; padding: 15px; }
+        .stat-box { flex: 1; background: #14141f; border-radius: 14px; padding: 15px 5px; text-align: center; border-bottom: 3px solid transparent; }
+        .stat-box.usdt { border-bottom-color: #26A17B; }
+        .stat-box.fg { border-bottom-color: #FFC107; }
+        .stat-box.comp { border-bottom-color: #FF6B35; }
+        .stat-box h3 { font-size: 22px; margin-bottom: 4px; font-weight: 800;}
+        .stat-box p { font-size: 11px; color: #888899; }
+
+        .btn-makeup { background: #2a2a35; border: none; color: #aaa; padding: 8px 12px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: 600;}
+        .btn-checkin { background: #FFC107; border: none; color: #000; padding: 8px 16px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer;}
+        .btn-checkin:disabled { background: #2a2a35 !important; color: #888 !important; cursor: not-allowed; }
+        .checkin-icon { width: 40px; height: 40px; background: rgba(255, 193, 7, 0.15); border-radius: 12px; display: flex; justify-content: center; align-items: center; color: #FFC107; font-size: 20px; }
+
+        /* Task Cards */
+        .task-card { background: #14141f; border-radius: 16px; padding: 15px; margin: 0 15px 12px; display: flex; justify-content: space-between; align-items: center; position: relative; overflow: hidden;}
+        .task-card .must-do { position: absolute; top: 0; left: 0; background: #FF4757; color: #fff; font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 0 0 10px 0; }
+        .task-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 24px; flex-shrink: 0; overflow: hidden;}
+        .task-icon.tw { background: #000; border: 1px solid #333;}
+        .task-icon.tg { background: rgba(0, 136, 204, 0.15); }
+
+        /* -------------------------------------------
+           NEW: Dynamic Task Button Colors 
+           ------------------------------------------- */
+        .btn-start { background: #1DA1F2; border: none; color: #fff; padding: 8px 18px; border-radius: 20px; font-weight: 700; font-size: 13px; cursor: pointer; min-width: 80px;}
+        .btn-start.orange { background: #FF6B35; }
+        .btn-start.check { background: #FFC107; color: #000; }
+        .btn-start.verifying { background: #888899; color: #fff; cursor: wait; }
+        .btn-start.done { background: #2a2a35; color: #4CAF50; cursor: not-allowed; }
+
+        /* --- RANK / LEADERBOARD STYLES (ORIGINAL) --- */
+        .my-rank-header { background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%); border-radius: 20px; padding: 25px 20px; margin: 15px; text-align: center; color: #fff; position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(255, 107, 53, 0.2);}
+        .my-rank-header::after { content: '\f091'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: -20px; bottom: -20px; font-size: 120px; opacity: 0.1; transform: rotate(-15deg); }
+        .rank-number { font-size: 42px; font-weight: 800; margin: 5px 0 10px; line-height: 1; }
+        .btn-invite { background: #fff; color: #FF6B35; border: none; padding: 12px; border-radius: 12px; font-weight: 800; width: 100%; font-size: 14px; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        .rank-list-item { background: #14141f; border-radius: 16px; padding: 12px 15px; margin: 0 15px 10px; display: flex; align-items: center; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .rank-medal { width: 35px; text-align: center; font-size: 18px; font-weight: 800; color: #888899; flex-shrink: 0;}
+        .rank-medal.gold { color: #FFD700; font-size: 24px; }
+        .rank-medal.silver { color: #C0C0C0; font-size: 24px; }
+        .rank-medal.bronze { color: #CD7F32; font-size: 24px; }
+        .rank-user-avatar { width: 42px; height: 42px; background: #2a2a35; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 700; margin: 0 12px; font-size: 16px;}
+        .rank-user-info { flex: 1; }
+        .rank-user-name { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+        .rank-user-score { font-size: 13px; color: #FFC107; font-weight: 700; }
+
+        /* --- ACTIVITY PAGE STYLES --- */
+        .page-header { padding: 20px 15px 10px; }
+        .page-header h2 { font-size: 24px; font-weight: 800; margin-bottom: 5px;}
+        .activity-tabs { display: flex; background: #14141f; border-radius: 12px; margin: 0 15px 15px; padding: 4px; }
+        .activity-tabs button { flex: 1; padding: 10px 0; background: transparent; border: none; color: #888899; font-weight: 700; font-size: 13px; border-radius: 8px; cursor: pointer; transition: 0.3s;}
+        .activity-tabs button.active { background: #FF6B35; color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+        .activity-progress-btn { background: #2a2a35; color: #888899; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700;}
+
+        /* --- PROFILE PAGE STYLES --- */
+        .profile-header-card { background: linear-gradient(180deg, #1c1c28 0%, #14141f 100%); border-radius: 20px; margin: 20px 15px 15px; padding: 30px 20px 20px; text-align: center; position: relative; border: 1px solid rgba(255, 255, 255, 0.05);}
+        .avatar-large { width: 80px; height: 80px; background: linear-gradient(135deg, #FF6B35, #FFC107); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 36px; font-weight: 800; margin: -50px auto 10px; border: 4px solid #0b0b14; color: #000; }
+        .verified-badge { background: rgba(38, 161, 123, 0.15); color: #26A17B; border: 1px solid rgba(38, 161, 123, 0.3); padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; display: none; margin-top: 5px; margin-left: auto; margin-right: auto;}
+        .verified-badge.active { display: inline-block; }
+        .level-box { background: rgba(0,0,0,0.3); border-radius: 12px; padding: 12px; margin-top: 20px; text-align: left;}
+        .progress-bar-bg { width: 100%; height: 6px; background: #2a2a35; border-radius: 3px; margin-top: 8px; overflow: hidden;}
+        .progress-bar-fill { height: 100%; background: #FF6B35; width: 0%; transition: 0.5s;}
+        
+        .wallet-card { background: #14141f; border-radius: 16px; margin: 0 15px 15px; padding: 20px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05);}
+        .wallet-card h4 { display: flex; align-items: center; justify-content: center; gap: 8px; color: #fff; font-size: 16px; margin-bottom: 15px; font-weight: 600;}
+        .wallet-balance { font-size: 36px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;}
+        .badge-usdt { background: rgba(38, 161, 123, 0.15); color: #26A17B; border: 1px solid rgba(38, 161, 123, 0.3); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 700;}
+        .btn-withdraw { width: 100%; padding: 14px; background: linear-gradient(135deg, #FF6B35, #FF8C42); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;}
+
+        .settings-list { background: #14141f; border-radius: 16px; margin: 0 15px; border: 1px solid rgba(255, 255, 255, 0.05);}
+        .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer;}
+        .settings-item:last-child { border-bottom: none; }
+        .settings-item i.chevron { color: #555566; }
+
+        /* Modal Styles */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: #14141f; border: 1px solid rgba(255,107,53,0.3); border-radius: 20px; padding: 25px; width: 90%; max-width: 350px; text-align: center; }
+        .modal-input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: #0b0b14; color: #fff; }
+        .modal-btn { background: #FF6B35; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; margin-bottom: 10px;}
+        .modal-btn-close { background: #2a2a35; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; }
+
+        /* --- IP Block Screen (NEW) --- */
+        #ip-block-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b14; z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px;}
+
+        /* Bottom Navigation */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #14141f; display: flex; justify-content: space-around; padding: 10px 0 15px; border-top: 1px solid rgba(255, 255, 255, 0.05); z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #555566; font-size: 10px; font-weight: 700; gap: 4px; cursor: pointer; transition: 0.3s; text-transform: uppercase;}
+        .nav-item.active { color: #FF6B35; }
+        .nav-item i { font-size: 20px; }
+        .nav-item.active i { transform: scale(1.1); }
+    </style>
+</head>
+<body>
+
+    <div id="ip-block-screen">
+        <i class="fas fa-ban" style="font-size: 60px; color: #FF4757; margin-bottom: 20px;"></i>
+        <h2 style="color: #fff; margin-bottom: 10px;">Multiple Accounts Detected</h2>
+        <p style="color: #888;">Our system detected that an account has already been registered from this network. Only one account per IP is allowed.</p>
+    </div>
+
+    <div id="page-home" class="page active">
+        <div class="stats-container">
+            <div class="stat-box usdt">
+                <h3 class="text-green" id="balance-usdt">0.00</h3>
+                <p>USDT</p>
+            </div>
+            <div class="stat-box fg">
+                <h3 class="text-yellow" id="balance-coins">0</h3>
+                <p>EA coin</p>
+            </div>
+            <div class="stat-box comp">
+                <h3 class="text-orange" id="tasks-completed">0</h3>
+                <p>Completed</p>
+            </div>
+        </div>
+
+        <div class="card flex-between">
+            <div class="flex-align">
+                <div class="checkin-icon"><i class="fas fa-gift"></i></div>
+                <div>
+                    <h4 style="font-size: 15px; margin-bottom: 4px;">Daily Check-in</h4>
+                    <span style="background: rgba(255, 193, 7, 0.15); color: #FFC107; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid rgba(255, 193, 7, 0.3);">+10 EA Coin</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-makeup" onclick="alert('Admin needs to enable Make Up feature!')">Make Up</button>
+                <button class="btn-checkin" id="btn-checkin" onclick="dailyCheckIn()">CHECK IN</button>
+            </div>
+        </div>
+
+        <div class="card flex-between" style="padding: 18px 15px; cursor: pointer;">
+            <div class="flex-align">
+                <div style="color: #FF6B35; font-size: 20px; background: rgba(255, 107, 53, 0.1); padding: 8px; border-radius: 8px;"><i class="fas fa-newspaper"></i></div>
+                <div>
+                    <h4 style="font-size: 15px; margin-bottom: 2px;">Official Guide</h4>
+                    <p class="text-gray">Learn how to earn rewards</p>
+                </div>
+            </div>
+            <i class="fas fa-chevron-right text-gray"></i>
+        </div>
+
+        <div class="task-card" style="margin-top: 20px; border: 1px solid rgba(29, 161, 242, 0.3);">
+            <div class="must-do">MUST DO</div>
+            <div class="flex-align">
+                <div class="task-icon tw">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 24.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </div>
+                <div style="margin-top: 10px;">
+                    <h4 style="font-size: 15px; margin-bottom: 5px;">Bind Twitter Account</h4>
+                    <div style="font-size: 12px; font-weight: 700;">
+                        <span class="text-yellow"><i class="fas fa-coins"></i> +500</span> &nbsp; 
+                        <span class="text-green"><i class="fa-brands fa-tether"></i> +0.02</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-start" id="btn-bind-twitter" onclick="openBindModal('twitter')">START</button>
+        </div>
+
+        <div class="section-title" style="margin-top: 25px;">
+            <i class="fas fa-fire text-orange"></i> HOT TASKS
+        </div>
+        
+        <div class="task-card">
+            <div class="flex-align">
+                <div class="task-icon tw">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 24.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </div>
+                <div>
+                    <h4 style="font-size: 15px; margin-bottom: 5px;">Follow @EarningAirdrop</h4>
+                    <div style="font-size: 12px; font-weight: 700;">
+                        <span class="text-green"><i class="fa-brands fa-tether"></i> +0.04</span> &nbsp; 
+                        <span class="text-yellow"><i class="fas fa-coins"></i> +100</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-start orange" id="task-follow-twitter" onclick="handleTaskFlow('twitter', 100, 0.04, 'task-follow-twitter', 'task1', 'https://twitter.com/EarningAirdrop')">START</button>
+        </div>
+
+        <div class="task-card">
+            <div class="flex-align">
+                <div class="task-icon tg">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="#0088cc"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.82 8.653-2.14 10.08c-.16.73-.59.9-1.2.56l-3.32-2.45-1.6 1.54c-.18.18-.33.33-.68.33l.24-3.4 6.18-5.58c.27-.24-.06-.38-.42-.14l-7.64 4.81-3.3-.1c-.72-.22-.73-.72.15-1.07l12.87-4.96c.6-.23 1.12.14.87 1.1z"/></svg>
+                </div>
+                <div>
+                    <h4 style="font-size: 15px; margin-bottom: 5px;">Join Official Channel</h4>
+                    <div style="font-size: 12px; font-weight: 700;">
+                        <span class="text-green"><i class="fa-brands fa-tether"></i> +0.02</span> &nbsp; 
+                        <span class="text-yellow"><i class="fas fa-coins"></i> +200</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-start orange" id="task-join-telegram" onclick="handleTaskFlow('telegram', 200, 0.02, 'task-join-telegram', 'task2', 'https://t.me/EarningAirdrop')">START</button>
+        </div>
+    </div>
+
+    <div id="page-tasks" class="page">
+        <div class="page-header">
+            <h2>Task Center</h2>
+            <p class="text-gray">Complete tasks, earn rewards</p>
+        </div>
+        <div style="text-align: center; margin-top: 50px;">
+            <i class="fas fa-box-open" style="font-size: 50px; color: #2a2a35;"></i>
+            <h3 style="margin-top: 15px; color: #888899;">More tasks coming soon</h3>
+        </div>
+    </div>
+
+
+    <div id="page-rank" class="page">
+        <div class="page-header" style="text-align: center; padding-top: 25px;">
+            <h2>Leaderboard</h2>
+            <p class="text-gray">Top earners of the network</p>
+        </div>
+
+        <div class="my-rank-header">
+            <p style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">My Current Rank</p>
+            <div class="rank-number" id="my-rank-display">#10,492</div>
+            <div style="font-size: 14px; font-weight: 700; background: rgba(0,0,0,0.2); display: inline-block; padding: 6px 15px; border-radius: 20px;">
+                <i class="fas fa-coins text-yellow"></i> <span id="my-rank-coins">0</span> EA Coins
+            </div>
+            
+            <button class="btn-invite" onclick="inviteFriends()">
+                <i class="fas fa-user-plus"></i> INVITE FRIENDS
+            </button>
+        </div>
+
+        <div class="section-title" style="margin-top: 25px;">
+            <i class="fas fa-crown text-yellow"></i> TOP 100 EARNERS
+        </div>
+
+        <div id="leaderboard-list">
+            <div class="rank-list-item" style="border: 1px solid rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.05);">
+                <div class="rank-medal gold"><i class="fas fa-medal"></i></div>
+                <div class="rank-user-avatar" style="background: #FFD700; color: #000;">C</div>
+                <div class="rank-user-info">
+                    <div class="rank-user-name">CryptoKing</div>
+                    <div class="rank-user-score">2,500,000 EA</div>
+                </div>
+            </div>
+            
+            <div class="rank-list-item" style="border: 1px solid rgba(192, 192, 192, 0.2); background: rgba(192, 192, 192, 0.05);">
+                <div class="rank-medal silver"><i class="fas fa-medal"></i></div>
+                <div class="rank-user-avatar" style="background: #C0C0C0; color: #000;">S</div>
+                <div class="rank-user-info">
+                    <div class="rank-user-name">Satoshi Nakamoto</div>
+                    <div class="rank-user-score">1,850,000 EA</div>
+                </div>
+            </div>
+
+            <div class="rank-list-item" style="border: 1px solid rgba(205, 127, 50, 0.2); background: rgba(205, 127, 50, 0.05);">
+                <div class="rank-medal bronze"><i class="fas fa-medal"></i></div>
+                <div class="rank-user-avatar" style="background: #CD7F32; color: #fff;">W</div>
+                <div class="rank-user-info">
+                    <div class="rank-user-name">Whale_99</div>
+                    <div class="rank-user-score">1,200,000 EA</div>
+                </div>
+            </div>
+
+            <div class="rank-list-item">
+                <div class="rank-medal">4</div>
+                <div class="rank-user-avatar">A</div>
+                <div class="rank-user-info">
+                    <div class="rank-user-name">Airdrop Hunter</div>
+                    <div class="rank-user-score">950,000 EA</div>
+                </div>
+            </div>
+
+            <div class="rank-list-item">
+                <div class="rank-medal">5</div>
+                <div class="rank-user-avatar">J</div>
+                <div class="rank-user-info">
+                    <div class="rank-user-name">John Doe</div>
+                    <div class="rank-user-score">820,000 EA</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="page-activity" class="page">
+        <div class="page-header">
+            <h2>Activity Center</h2>
+            <p class="text-gray">Complete activities, earn rewards</p>
+        </div>
+
+        <div class="activity-tabs">
+            <button class="active" onclick="switchActivityTab('tab-daily', this)"><i class="fas fa-fire"></i> DAILY</button>
+            <button onclick="switchActivityTab('tab-achieve', this)"><i class="fas fa-trophy"></i> ACHIEVE</button>
+            <button onclick="switchActivityTab('tab-events', this)"><i class="fas fa-gift"></i> EVENTS</button>
+        </div>
+
+        <div id="tab-daily" class="tab-content active">
+            <div class="card">
+                <div class="flex-between" style="margin-bottom: 5px;">
+                    <h3 style="font-size: 16px;"><i class="fas fa-fire text-orange"></i> Daily Tasks</h3>
+                    <span class="text-orange" style="font-weight: 700; font-size: 14px;">0/2</span>
+                </div>
+                <p class="text-gray" style="margin-bottom: 20px;"><i class="far fa-clock"></i> Daily Reset</p>
+
+                <div class="flex-between" style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px;">
+                    <div class="flex-align">
+                        <div style="width: 40px; height: 40px; background: #2a2a35; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #FF4757;"><i class="fas fa-bullseye"></i></div>
+                        <div>
+                            <h4 style="font-size: 15px; margin-bottom: 3px;">Complete 3 Tasks</h4>
+                            <span class="text-yellow" style="font-weight: 700; font-size: 12px;"><i class="fas fa-coins"></i> +20 EA</span>
+                        </div>
+                    </div>
+                    <button class="activity-progress-btn">0/3</button>
+                </div>
+
+                <div class="flex-between">
+                    <div class="flex-align">
+                        <div style="width: 40px; height: 40px; background: #2a2a35; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #FFC107;"><i class="fas fa-star"></i></div>
+                        <div>
+                            <h4 style="font-size: 15px; margin-bottom: 3px;">Complete 10 Tasks</h4>
+                            <span class="text-yellow" style="font-weight: 700; font-size: 12px;"><i class="fas fa-coins"></i> +50 EA</span>
+                        </div>
+                    </div>
+                    <button class="activity-progress-btn">0/10</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-achieve" class="tab-content">
+            <div style="text-align: center; margin-top: 30px; color: #888;">
+                <i class="fas fa-trophy" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
+                <p>No achievements yet</p>
+            </div>
+        </div>
+        <div id="tab-events" class="tab-content">
+            <div style="text-align: center; margin-top: 30px; color: #888;">
+                <i class="fas fa-calendar-times" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
+                <p>No active events</p>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="page-profile" class="page">
+        <div class="profile-header-card">
+            <div class="avatar-large" id="profile-avatar">?</div>
+            <h2 id="profile-name" style="font-size: 24px; font-weight: 800; margin-bottom: 5px;">Loading...</h2>
+            
+            <div class="verified-badge" id="badge-verified"><i class="fas fa-check-circle"></i> Verified</div>
+
+            <div class="level-box">
+                <div class="flex-between" style="font-size: 13px; font-weight: 700;">
+                    <span><i class="fas fa-medal text-orange"></i> Lv.1 <span class="text-yellow">Newbie</span></span>
+                    <span class="text-gray" id="level-progress-text">0/3</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="level-progress-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card flex-between">
+            <div class="flex-align">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google" width="24">
+                <div>
+                    <h4 style="font-size: 15px;">Google</h4>
+                    <p class="text-gray" id="google-status-text">Not linked</p>
+                </div>
+            </div>
+            <button class="btn-start" id="btn-bind-google" style="background: #26A17B; padding: 6px 14px;" onclick="openBindModal('google')">Link</button>
+        </div>
+
+        <div class="wallet-card">
+            <h4><i class="fas fa-wallet text-orange"></i> My Wallet</h4>
+            <div class="wallet-balance">
+                $<span style="font-size: 48px;" id="profile-usdt-whole">0</span><span style="color: #888899;" id="profile-usdt-decimal">.000</span>
+                <span class="badge-usdt">USDT</span>
+            </div>
+            <button class="btn-withdraw" onclick="handleWithdraw()">
+                <i class="fas fa-download"></i> WITHDRAW
+            </button>
+        </div>
+
+        <div class="flex-between" style="padding: 0 20px 15px; cursor: pointer;" onclick="alert('Reward History will be available soon!')">
+            <div class="flex-align" style="font-weight: 700;">
+                <i class="far fa-clock text-orange"></i> Reward History
+            </div>
+            <div class="text-gray" style="font-size: 13px;">View More <i class="fas fa-chevron-right"></i></div>
+        </div>
+
+        <div class="settings-list">
+            <div class="settings-item" onclick="openBindModal('twitter')">
+                <div class="flex-align"><i class="fa-brands fa-x-twitter" style="color: #1DA1F2; font-size: 18px;"></i> <span style="font-weight: 600;">Twitter Binding</span></div>
+                <div class="text-gray"><span id="twitter-status-text">Not Bound</span> <i class="fas fa-chevron-right chevron" style="margin-left: 5px;"></i></div>
+            </div>
+            <div class="settings-item" onclick="alert('Notification settings will be available soon!')">
+                <div class="flex-align"><i class="far fa-bell" style="color: #FFC107; font-size: 18px;"></i> <span style="font-weight: 600;">Notification Settings</span></div>
+                <i class="fas fa-chevron-right chevron"></i>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal-overlay" id="bind-modal">
+        <div class="modal-card">
+            <h3 id="modal-title" style="margin-bottom: 10px;">Bind Account</h3>
+            <p class="text-gray" id="modal-desc">Enter your username or email</p>
+            <input type="text" id="modal-input" class="modal-input" placeholder="Username / Email">
+            <button class="modal-btn" onclick="submitBind()">BIND NOW</button>
+            <button class="modal-btn-close" onclick="closeBindModal()">CANCEL</button>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchPage('page-home', this)"><i class="fas fa-home"></i>Home</div>
+        <div class="nav-item" onclick="switchPage('page-tasks', this)"><i class="fas fa-crosshairs"></i>Tasks</div>
+        <div class="nav-item" onclick="switchPage('page-rank', this)"><i class="fas fa-trophy"></i>Rank</div>
+        <div class="nav-item" onclick="switchPage('page-activity', this)"><i class="far fa-calendar-check"></i>Activity</div>
+        <div class="nav-item" onclick="switchPage('page-profile', this)"><i class="far fa-user"></i>Profile</div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD0xuVCh-eUdLycWHYJ0XP03x72dH4cp9M",
+            authDomain: "earning-airdrop.firebaseapp.com",
+            databaseURL: "https://earning-airdrop-default-rtdb.firebaseio.com",
+            projectId: "earning-airdrop",
+            storageBucket: "earning-airdrop.firebasestorage.app",
+            messagingSenderId: "311381458442",
+            appId: "1:311381458442:web:9775ac87dafa6f348ba9f3",
+            measurementId: "G-40YE80WZYD"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let userId = ""; 
+        let userName = "";
+        let isTwitterBound = false;
+        let userIP = "";
+        let currentUsdtBalance = 0;
+
+        // 1. GET ORIGINAL TELEGRAM NAME (NO GUEST)
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            userId = tg.initDataUnsafe.user.id.toString();
+            userName = tg.initDataUnsafe.user.first_name;
+        } else {
+            userId = "dev_test_user";
+            userName = "Developer";
+        }
+        
+        document.getElementById("profile-name").innerText = userName;
+        document.getElementById("profile-avatar").innerText = userName.charAt(0).toUpperCase();
+
+        // 2. IP BLOCKING LOGIC
+        async function checkIPAndInit() {
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                userIP = data.ip.replace(/\./g, '_'); 
+                
+                const ipRef = db.ref('ip_logs/' + userIP);
+                ipRef.once('value').then((snapshot) => {
+                    const existingUserId = snapshot.val();
+                    
+                    if (existingUserId && existingUserId !== userId) {
+                        // IP used by someone else
+                        document.getElementById('ip-block-screen').style.display = 'flex';
+                    } else {
+                        // IP is clean
+                        ipRef.set(userId);
+                        loadUserData();
+                    }
+                });
+            } catch(e) {
+                // If API fails, let user in safely
+                loadUserData();
+            }
+        }
+
+        function updateLevelUI(completedTasks) {
+            let required = 3;
+            document.getElementById("level-progress-text").innerText = `${completedTasks}/${required}`;
+            let percentage = (completedTasks / required) * 100;
+            if(percentage > 100) percentage = 100;
+            document.getElementById("level-progress-bar").style.width = percentage + "%";
+        }
+
+        function formatUSDT(amount) {
+            currentUsdtBalance = amount;
+            const numStr = amount.toFixed(3);
+            const parts = numStr.split('.');
+            document.getElementById('profile-usdt-whole').innerText = parts[0];
+            document.getElementById('profile-usdt-decimal').innerText = "." + parts[1];
+            document.getElementById('balance-usdt').innerText = numStr;
+        }
+
+        function loadUserData() {
+            const userRef = db.ref('users/' + userId);
+            userRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    formatUSDT(data.usdt || 0);
+                    document.getElementById('balance-coins').innerText = data.coins || 0;
+                    document.getElementById('my-rank-coins').innerText = data.coins || 0; 
+                    document.getElementById('tasks-completed').innerText = data.completed_tasks || 0;
+                    updateLevelUI(data.completed_tasks || 0);
+
+                    // Twitter Check
+                    isTwitterBound = !!data.twitter_bound;
+
+                    // Disable buttons for completed tasks
+                    const finishedTasks = data.finished_tasks || [];
+                    if(finishedTasks.includes('task1')) disableTaskBtn('task-follow-twitter');
+                    if(finishedTasks.includes('task2')) disableTaskBtn('task-join-telegram');
+
+                    const todayDate = new Date().toLocaleDateString();
+                    if(data.last_checkin === todayDate) {
+                        const btn = document.getElementById('btn-checkin');
+                        btn.innerText = "DONE";
+                        btn.disabled = true;
+                    }
+
+                    if(data.twitter_bound && data.google_bound) {
+                        document.getElementById('badge-verified').classList.add('active');
+                    }
+
+                    if(data.twitter_bound) {
+                        disableTaskBtn('btn-bind-twitter');
+                        document.getElementById('twitter-status-text').innerText = "Bound";
+                        document.getElementById('twitter-status-text').style.color = "#4CAF50";
+                    }
+                    if(data.google_bound) {
+                        document.getElementById('btn-bind-google').innerText = "Linked";
+                        document.getElementById('btn-bind-google').style.background = "#2a2a35";
+                        document.getElementById('google-status-text').innerText = "Linked";
+                    }
+                } else {
+                    userRef.set({ name: userName, usdt: 0, coins: 0, completed_tasks: 0, last_checkin: "" });
+                }
+            });
+        }
+
+        function disableTaskBtn(btnId) {
+            const btn = document.getElementById(btnId);
+            if(btn) {
+                btn.innerText = "DONE";
+                btn.className = "btn-start done";
+                btn.disabled = true;
+            }
+        }
+
+        function dailyCheckIn() {
+            const userRef = db.ref('users/' + userId);
+            const todayDate = new Date().toLocaleDateString();
+
+            userRef.once('value').then((snapshot) => {
+                const data = snapshot.val() || {};
+                if(data.last_checkin === todayDate) {
+                    alert("You have already checked in today! Come back tomorrow.");
+                    return;
+                }
+                userRef.update({ coins: (data.coins || 0) + 10, last_checkin: todayDate }).then(() => {
+                    const btn = document.getElementById('btn-checkin');
+                    btn.innerText = "DONE";
+                    btn.disabled = true;
+                    tg.showAlert ? tg.showAlert("Successfully Checked In! +10 EA Coins added.") : alert("Checked In! +10 EA Coins");
+                });
+            });
+        }
+
+        // 3. TASK VERIFICATION LOGIC (START -> CHECK -> DONE)
+        function handleTaskFlow(type, rewardCoins, rewardUsdt, btnId, taskId, link) {
+            
+            // Dependency Check: Must bind Twitter first
+            if(type === 'twitter' && !isTwitterBound) {
+                alert("Please bind your Twitter account first in the Profile section!");
+                switchPage('page-profile', document.querySelectorAll('.nav-item')[4]);
+                return;
+            }
+
+            const btn = document.getElementById(btnId);
+
+            // Step 1: User clicks START
+            if(btn.innerText === "START") {
+                if(tg.openTelegramLink && type === 'telegram') {
+                    tg.openTelegramLink(link);
+                } else {
+                    window.open(link, '_blank');
+                }
+                btn.innerText = "CHECK";
+                btn.className = "btn-start check";
+                return;
+            }
+
+            // Step 2: User clicks CHECK
+            if(btn.innerText === "CHECK") {
+                btn.innerText = "Verifying...";
+                btn.className = "btn-start verifying";
+                
+                // Add a fake delay to feel like checking system
+                setTimeout(() => {
+                    verifyAndRewardTask(rewardCoins, rewardUsdt, taskId, btn);
+                }, 3000);
+            }
+        }
+
+        // Finalize Task Reward
+        function verifyAndRewardTask(rewardCoins, rewardUsdt, taskId, btnElement) {
+            const userRef = db.ref('users/' + userId);
+            userRef.once('value').then((snapshot) => {
+                const data = snapshot.val();
+                let finishedTasks = data.finished_tasks || [];
+                
+                if(!finishedTasks.includes(taskId)) {
+                    finishedTasks.push(taskId);
+                    userRef.update({ 
+                        coins: (data.coins || 0) + rewardCoins,
+                        usdt: (data.usdt || 0) + rewardUsdt,
+                        completed_tasks: (data.completed_tasks || 0) + 1,
+                        finished_tasks: finishedTasks
+                    }).then(() => {
+                        btnElement.innerText = "DONE";
+                        btnElement.className = "btn-start done";
+                        btnElement.disabled = true;
+                        tg.showAlert ? tg.showAlert(`Task completed! Earned ${rewardCoins} Coins & ${rewardUsdt} USDT`) : alert(`Task completed! Earned ${rewardCoins} Coins.`);
+                    });
+                }
+            });
+        }
+
+        function handleWithdraw() {
+            const minWithdraw = 10;
+            if(currentUsdtBalance < minWithdraw) {
+                alert(`You need at least $${minWithdraw} USDT to withdraw.\nKeep completing tasks!`);
+            } else {
+                alert("Withdrawal requested successfully! Processing will take 24 hours.");
+            }
+        }
+
+        function inviteFriends() {
+            const botLink = "https://t.me/EarningAirdropBot?start=" + userId; 
+            const text = "Join Earning Airdrop and earn USDT for free! 🚀";
+            const shareUrl = "https://t.me/share/url?url=" + encodeURIComponent(botLink) + "&text=" + encodeURIComponent(text);
+            
+            if(tg.openTelegramLink) {
+                tg.openTelegramLink(shareUrl);
+            } else {
+                window.open(shareUrl, '_blank');
+            }
+        }
+
+        function openBindModal(type) {
+            const userRef = db.ref('users/' + userId);
+            userRef.once('value').then((snapshot) => {
+                const data = snapshot.val() || {};
+                if(type === 'twitter' && data.twitter_bound) { alert("Twitter is already bound!"); return; }
+                if(type === 'google' && data.google_bound) { alert("Google is already bound!"); return; }
+                
+                currentBindType = type;
+                const modal = document.getElementById('bind-modal');
+                const title = document.getElementById('modal-title');
+                const input = document.getElementById('modal-input');
+
+                if(type === 'twitter') {
+                    title.innerText = "Bind Twitter";
+                    input.placeholder = "@username";
+                } else {
+                    title.innerText = "Link Google";
+                    input.placeholder = "example@gmail.com";
+                }
+                modal.classList.add('active');
+            });
+        }
+
+        function closeBindModal() {
+            document.getElementById('bind-modal').classList.remove('active');
+        }
+
+        function submitBind() {
+            const inputVal = document.getElementById('modal-input').value;
+            if(inputVal.length < 3) {
+                alert("Please enter a valid account name.");
+                return;
+            }
+
+            const userRef = db.ref('users/' + userId);
+            if(currentBindType === 'twitter') {
+                userRef.update({ twitter_bound: true, twitter_handle: inputVal, coins: firebase.database.ServerValue.increment(500), usdt: firebase.database.ServerValue.increment(0.02) });
+            } else {
+                userRef.update({ google_bound: true, google_email: inputVal });
+            }
+
+            closeBindModal();
+            tg.showAlert ? tg.showAlert("Account successfully bound!") : alert("Account bound successfully!");
+        }
+
+        function switchActivityTab(tabId, btnElement) {
+            document.querySelectorAll('.activity-tabs button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            btnElement.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function switchPage(pageId, navElement) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            if(navElement) navElement.classList.add('active');
+        }
+
+        // START APP
+        checkIPAndInit();
+    </script>
+</body>
+</html>
